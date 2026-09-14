@@ -2,56 +2,411 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Five Day Split</title>
-<meta name="description" content="Workout logger, progressive overload, steps, cardio, calories, body weight and recovery tracking for a 5-day training split.">
-<meta name="theme-color" content="#1c1b18">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="assets/icon.svg">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css">
-<link rel="stylesheet" href="assets/css/views-a.css">
-<link rel="stylesheet" href="assets/css/views-b.css">
-<link rel="stylesheet" href="assets/css/views-c.css">
-<link rel="stylesheet" href="assets/css/views-d.css">
-<script>
-  try {
-    var t = JSON.parse(localStorage.getItem('fds:v1') || '{}');
-    var th = t.settings && t.settings.theme;
-    if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
-  } catch (e) {}
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c1b18; --paper:#f3f1ea; --card:#ffffff;
+    --push:#c1481f; --pull:#0f6e56; --legs:#42600f; --pullleg:#4a3f9c;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; padding:0 0 60px; }
+  .masthead{ padding:20px 16px 14px; border-bottom:4px solid var(--ink); }
+  .masthead h1{ font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:0.5px; line-height:0.9; margin:0 0 4px; }
+  .masthead p{ margin:0; font-size:13px; color:#5a584f; line-height:1.5; }
+
+  .tabs{ display:flex; gap:8px; overflow-x:auto; padding:12px 16px; background:var(--paper); position:sticky; top:0; z-index:10; border-bottom:1px solid #ddd8c8; -webkit-overflow-scrolling:touch; }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{ flex:0 0 auto; font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:0.3px; padding:9px 16px; border-radius:20px; border:2px solid var(--ink); background:var(--card); color:var(--ink); cursor:pointer; white-space:nowrap; }
+  .tab.active{color:#fff;}
+  .tab[data-day="mon"].active{background:var(--push);border-color:var(--push);}
+  .tab[data-day="tue"].active{background:var(--pull);border-color:var(--pull);}
+  .tab[data-day="wed"].active{background:var(--legs);border-color:var(--legs);}
+  .tab[data-day="thu"].active{background:var(--push);border-color:var(--push);}
+  .tab[data-day="fri"].active{background:var(--pullleg);border-color:var(--pullleg);}
+
+  .day{ display:none; padding:14px 16px 4px; }
+  .day.active{ display:block; }
+  .day-head{ display:flex; align-items:baseline; gap:12px; padding:12px 16px; color:#fff; border-radius:10px; margin-bottom:14px; }
+  .day-head .name{ font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.3px; }
+  .day-head .focus{ font-size:13px; font-weight:500; opacity:0.9; }
+  .mon .day-head, .thu .day-head{ background:var(--push); }
+  .tue .day-head{ background:var(--pull); }
+  .wed .day-head{ background:var(--legs); }
+  .fri .day-head{ background:var(--pullleg); }
+
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .ex{ background:var(--card); border:1px solid #ddd8c8; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:6px; }
+  .ex-top{ display:flex; align-items:center; justify-content:space-between; }
+  .num{ font-family:'Bebas Neue',sans-serif; font-size:18px; color:#b8b4a3; }
+
+  .addbtn{
+    font-size:10px; font-weight:600; color:#fff; background:var(--ink);
+    padding:4px 8px; border-radius:12px; cursor:pointer; white-space:nowrap;
+  }
+  .filein{ display:none; }
+
+  .thumb{ width:100%; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; position:relative; }
+  .thumb img{ width:100%; height:100%; object-fit:contain; display:block; background:#fff; }
+  .thumb .fallback{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; height:100%; padding:8px; text-align:center; }
+  .thumb .fallback svg{ width:22px; height:22px; stroke:#a8a495; }
+  .thumb .fallback span{ font-size:10px; color:#8a8778; }
+  .thumb.no-photo img{ display:none; }
+  .thumb.no-photo .fallback{ display:flex; }
+  .thumb.has-custom{ outline:2px solid var(--legs); outline-offset:-2px; }
+
+  .ex-name{ font-size:13.5px; font-weight:600; line-height:1.25; }
+  .ex-sets{ font-size:11.5px; font-weight:500; color:#6b6a60; }
+  .credit{ font-size:9px; color:#b0ad9e; }
+
+  footer{ margin:20px 16px 0; font-size:11.5px; color:#8a8778; line-height:1.6; }
+  .reset{ font-size:11px; text-decoration:underline; color:#6b6a60; background:none; border:none; padding:0; margin-top:6px; cursor:pointer; }
+
+  @media (min-width:640px){
+    .grid{ grid-template-columns:repeat(3,1fr); }
+    .masthead h1{ font-size:52px; }
+    .day{ padding:20px 24px 4px; }
+    .tabs{ padding:14px 24px; }
+    .masthead{ padding:28px 24px 16px; }
+    footer{ margin:24px 24px 0; }
+  }
+</style>
 </head>
 <body>
-<a class="skip" href="#view">Skip to content</a>
-<div class="app">
-  <aside class="side" id="side" aria-label="Main"></aside>
-  <header class="top" id="top"></header>
-  <main id="view" class="view" tabindex="-1"></main>
-  <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+
+<div class="masthead">
+  <h1>Five day split</h1>
+  <p>Tap a day below. Tap "+ photo" on any card to add your own picture &mdash; it's saved right in this file on your phone.</p>
 </div>
-<button class="timer-pill" id="timer-pill" type="button" hidden aria-label="Open rest timer"></button>
-<div id="sheet-root"></div>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
-<noscript><p style="padding:16px">This app needs JavaScript to track your workouts.</p></noscript>
-<script src="assets/js/data.js"></script>
-<script src="assets/js/logic.js"></script>
-<script src="assets/js/core.js"></script>
-<script src="assets/js/views/today.js"></script>
-<script src="assets/js/views/plan.js"></script>
-<script src="assets/js/views/exercise.js"></script>
-<script src="assets/js/views/workout.js"></script>
-<script src="assets/js/views/food.js"></script>
-<script src="assets/js/views/body.js"></script>
-<script src="assets/js/views/activity.js"></script>
-<script src="assets/js/views/recovery.js"></script>
-<script src="assets/js/views/week.js"></script>
-<script src="assets/js/views/learn.js"></script>
-<script src="assets/js/views/settings.js"></script>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-day="mon">Mon &middot; push</button>
+  <button class="tab" data-day="tue">Tue &middot; pull</button>
+  <button class="tab" data-day="wed">Wed &middot; legs</button>
+  <button class="tab" data-day="thu">Thu &middot; push</button>
+  <button class="tab" data-day="fri">Fri &middot; pull+legs</button>
+</div>
+
+<!-- helper macro (written out per card below) -->
+
+<!-- MONDAY -->
+<section class="day mon active" data-day="mon">
+  <div class="day-head"><span class="name">Monday</span><span class="focus">push</span></div>
+  <div class="grid">
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">01</span><label class="addbtn" for="f-mon1">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon1" onchange="addPhoto(this,'mon1')"></div>
+      <div class="thumb" id="thumb-mon1"><img id="img-mon1" src="MON/m1.jpg" alt="Machine chest press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Machine chest press</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">02</span><label class="addbtn" for="f-mon2">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon2" onchange="addPhoto(this,'mon2')"></div>
+      <div class="thumb" id="thumb-mon2"><img id="img-mon2" src="MON/m2.jpg" alt="Incline dumbbell press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Incline dumbbell press</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">03</span><label class="addbtn" for="f-mon3">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon3" onchange="addPhoto(this,'mon3')"></div>
+      <div class="thumb" id="thumb-mon3"><img id="img-mon3" src="MON/m3.jpg" alt="Pec deck" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Pec deck</div>
+      <div class="ex-sets">3 &times; 10&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">04</span><label class="addbtn" for="f-mon4">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon4" onchange="addPhoto(this,'mon4')"></div>
+      <div class="thumb" id="thumb-mon4"><img id="img-mon4" src="MON/m4.jpg" alt="Machine shoulder press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Machine shoulder press</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">05</span><label class="addbtn" for="f-mon5">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon5" onchange="addPhoto(this,'mon5')"></div>
+      <div class="thumb" id="thumb-mon5"><img id="img-mon5" src="MON/m5.jpg" alt="Lateral raises" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Lateral raises</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">06</span><label class="addbtn" for="f-mon6">+ photo</label><input class="filein" type="file" accept="image/*" id="f-mon6" onchange="addPhoto(this,'mon6')"></div>
+      <div class="thumb" id="thumb-mon6"><img id="img-mon6" src="MON/m6.jpg" alt="Triceps pushdown" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Triceps pushdown</div>
+      <div class="ex-sets">3 &times; 10&ndash;15</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- TUESDAY -->
+<section class="day tue" data-day="tue">
+  <div class="day-head"><span class="name">Tuesday</span><span class="focus">pull</span></div>
+  <div class="grid">
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">01</span><label class="addbtn" for="f-tue1">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue1" onchange="addPhoto(this,'tue1')"></div>
+      <div class="thumb" id="thumb-tue1"><img id="img-tue1" src="TUE/t1.jpg" alt="Lat pulldown" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Lat pulldown</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">02</span><label class="addbtn" for="f-tue2">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue2" onchange="addPhoto(this,'tue2')"></div>
+      <div class="thumb" id="thumb-tue2"><img id="img-tue2" src="TUE/t2.jpg" alt="Seated cable row" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Seated cable row</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">03</span><label class="addbtn" for="f-tue3">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue3" onchange="addPhoto(this,'tue3')"></div>
+      <div class="thumb" id="thumb-tue3"><img id="img-tue3" src="TUE/t3.jpg" alt="Chest-supported row" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Chest-supported row</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">04</span><label class="addbtn" for="f-tue4">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue4" onchange="addPhoto(this,'tue4')"></div>
+      <div class="thumb" id="thumb-tue4"><img id="img-tue4" src="TUE/t4.jpg" alt="Face pull" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Face pull</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">05</span><label class="addbtn" for="f-tue5">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue5" onchange="addPhoto(this,'tue5')"></div>
+      <div class="thumb" id="thumb-tue5"><img id="img-tue5" src="TUE/t5.jpg" alt="Dumbbell curl" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Dumbbell curl</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">06</span><label class="addbtn" for="f-tue6">+ photo</label><input class="filein" type="file" accept="image/*" id="f-tue6" onchange="addPhoto(this,'tue6')"></div>
+      <div class="thumb" id="thumb-tue6"><img id="img-tue6" src="TUE/t6.jpg" alt="Hammer curl" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Hammer curl</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- WEDNESDAY -->
+<section class="day wed" data-day="wed">
+  <div class="day-head"><span class="name">Wednesday</span><span class="focus">legs + core</span></div>
+  <div class="grid">
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">01</span><label class="addbtn" for="f-wed1">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed1" onchange="addPhoto(this,'wed1')"></div>
+      <div class="thumb" id="thumb-wed1"><img id="img-wed1" src="WED/w1.jpg" alt="Leg press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Leg press</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">02</span><label class="addbtn" for="f-wed2">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed2" onchange="addPhoto(this,'wed2')"></div>
+      <div class="thumb" id="thumb-wed2"><img id="img-wed2" src="WED/w2.jpg" alt="Leg curl" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Leg curl</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">03</span><label class="addbtn" for="f-wed3">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed3" onchange="addPhoto(this,'wed3')"></div>
+      <div class="thumb" id="thumb-wed3"><img id="img-wed3" src="WED/w3.jpg" alt="Leg extension" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Leg extension</div>
+      <div class="ex-sets">3 &times; 10&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">04</span><label class="addbtn" for="f-wed4">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed4" onchange="addPhoto(this,'wed4')"></div>
+      <div class="thumb" id="thumb-wed4"><img id="img-wed4" src="WED/w4.jpg" alt="Calf raise" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Calf raise</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">05</span><label class="addbtn" for="f-wed5">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed5" onchange="addPhoto(this,'wed5')"></div>
+      <div class="thumb" id="thumb-wed5"><img id="img-wed5" src="WED/w5.jpg" alt="Cable crunch" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Cable crunch</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">06</span><label class="addbtn" for="f-wed6">+ photo</label><input class="filein" type="file" accept="image/*" id="f-wed6" onchange="addPhoto(this,'wed6')"></div>
+      <div class="thumb" id="thumb-wed6"><img id="img-wed6" src="WED/w6.png" alt="Dead bug" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Dead bug</div>
+      <div class="ex-sets">3 &times; 10 each side</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- THURSDAY -->
+<section class="day thu" data-day="thu">
+  <div class="day-head"><span class="name">Thursday</span><span class="focus">push</span></div>
+  <div class="grid">
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">01</span><label class="addbtn" for="f-thu1">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu1" onchange="addPhoto(this,'thu1')"></div>
+      <div class="thumb" id="thumb-thu1"><img id="img-thu1" src="THUR/th1.jpg" alt="Incline machine press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Incline machine press</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">02</span><label class="addbtn" for="f-thu2">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu2" onchange="addPhoto(this,'thu2')"></div>
+      <div class="thumb" id="thumb-thu2"><img id="img-thu2" src="THUR/th2.jpg" alt="Chest press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Chest press</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">03</span><label class="addbtn" for="f-thu3">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu3" onchange="addPhoto(this,'thu3')"></div>
+      <div class="thumb" id="thumb-thu3"><img id="img-thu3" src="THUR/th3.jpg" alt="Cable fly" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Cable fly</div>
+      <div class="ex-sets">2 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">04</span><label class="addbtn" for="f-thu4">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu4" onchange="addPhoto(this,'thu4')"></div>
+      <div class="thumb" id="thumb-thu4"><img id="img-thu4" src="THUR/th4.jpg" alt="Lateral raise" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Lateral raise</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">05</span><label class="addbtn" for="f-thu5">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu5" onchange="addPhoto(this,'thu5')"></div>
+      <div class="thumb" id="thumb-thu5"><img id="img-thu5" src="THUR/th5.jpg" alt="Triceps pushdown" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Triceps pushdown</div>
+      <div class="ex-sets">3 &times; 10&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">06</span><label class="addbtn" for="f-thu6">+ photo</label><input class="filein" type="file" accept="image/*" id="f-thu6" onchange="addPhoto(this,'thu6')"></div>
+      <div class="thumb" id="thumb-thu6"><img id="img-thu6" src="THUR/th6.jpg" alt="Overhead triceps extension" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Overhead triceps extension</div>
+      <div class="ex-sets">2 &times; 10&ndash;15</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FRIDAY -->
+<section class="day fri" data-day="fri">
+  <div class="day-head"><span class="name">Friday</span><span class="focus">pull + legs</span></div>
+  <div class="grid">
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">01</span><label class="addbtn" for="f-fri1">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri1" onchange="addPhoto(this,'fri1')"></div>
+      <div class="thumb" id="thumb-fri1"><img id="img-fri1" src="Fri/f1.jpg" alt="Lat pulldown" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Lat pulldown</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">02</span><label class="addbtn" for="f-fri2">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri2" onchange="addPhoto(this,'fri2')"></div>
+      <div class="thumb" id="thumb-fri2"><img id="img-fri2" src="Fri/f2.jpg" alt="Seated row" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Seated row</div>
+      <div class="ex-sets">3 &times; 8&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">03</span><label class="addbtn" for="f-fri3">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri3" onchange="addPhoto(this,'fri3')"></div>
+      <div class="thumb" id="thumb-fri3"><img id="img-fri3" src="Fri/f3.jpg" alt="Leg press" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Leg press</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">04</span><label class="addbtn" for="f-fri4">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri4" onchange="addPhoto(this,'fri4')"></div>
+      <div class="thumb" id="thumb-fri4"><img id="img-fri4" src="Fri/f4.jpg" alt="Leg curl" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Leg curl</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">05</span><label class="addbtn" for="f-fri5">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri5" onchange="addPhoto(this,'fri5')"></div>
+      <div class="thumb" id="thumb-fri5"><img id="img-fri5" src="Fri/f5.jpg" alt="Rear-delt fly" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Rear-delt fly</div>
+      <div class="ex-sets">3 &times; 12&ndash;15</div>
+    </div>
+
+    <div class="ex">
+      <div class="ex-top"><span class="num">06</span><label class="addbtn" for="f-fri6">+ photo</label><input class="filein" type="file" accept="image/*" id="f-fri6" onchange="addPhoto(this,'fri6')"></div>
+      <div class="thumb" id="thumb-fri6"><img id="img-fri6" src="Fri/f6.jpg" alt="Biceps curl" loading="lazy"><div class="fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg><span>no photo yet</span></div></div>
+      <div class="ex-name">Biceps curl</div>
+      <div class="ex-sets">3 &times; 10&ndash;12</div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Tap "+ photo" on any card to pick a picture from your phone &mdash; it replaces whatever was there and is saved inside this file for next time you open it (same browser, same phone).
+  <div><button class="reset" onclick="resetAllPhotos()">Reset all my added photos</button></div>
+</footer>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const days = document.querySelectorAll('.day');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-day');
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      days.forEach(d => d.classList.toggle('active', d.getAttribute('data-day') === target));
+    });
+  });
+
+  function addPhoto(input, key){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        localStorage.setItem('workoutphoto-' + key, e.target.result);
+      }catch(err){
+        console.error('could not save photo', err);
+      }
+      applyPhoto(key, e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function applyPhoto(key, dataUrl){
+    const img = document.getElementById('img-' + key);
+    const thumb = document.getElementById('thumb-' + key);
+    const credit = document.getElementById('credit-' + key);
+    if(!img || !thumb) return;
+    img.src = dataUrl;
+    img.style.display = 'block';
+    thumb.classList.remove('no-photo');
+    thumb.classList.add('has-custom');
+    if(credit) credit.textContent = 'Your photo';
+    else {
+      const c = document.createElement('div');
+      c.className = 'credit';
+      c.id = 'credit-' + key;
+      c.textContent = 'Your photo';
+      thumb.parentElement.insertBefore(c, thumb.nextSibling);
+    }
+  }
+
+  function resetAllPhotos(){
+    if(!confirm('Remove all photos you added and go back to defaults?')) return;
+    Object.keys(localStorage).forEach(k => {
+      if(k.startsWith('workoutphoto-')) localStorage.removeItem(k);
+    });
+    location.reload();
+  }
+
+  // on load, restore any saved custom photos
+  document.querySelectorAll('.filein').forEach(input => {
+    const key = input.id.replace('f-', '');
+    const saved = localStorage.getItem('workoutphoto-' + key);
+    if(saved) applyPhoto(key, saved);
+  });
+</script>
+
 </body>
 </html>
