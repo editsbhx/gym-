@@ -1,0 +1,28 @@
+/* Food and body */
+.c-summary { display: flex; gap: 16px; align-items: center; }
+.c-summary .grow { display: grid; gap: 8px; }
+@media (max-width: 380px) { .c-summary { flex-direction: column; align-items: stretch; } .c-summary .ring { margin: 0 auto; } }
+.c-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.c-cups { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 6px; margin-top: 6px; }
+.c-cup { min-height: 44px; border: 0; background: none; padding: 0; display: flex; align-items: flex-end; justify-content: center; }
+.c-cup i { display: block; width: 100%; max-width: 30px; height: 38px; border-radius: 6px 6px 10px 10px; border: 2px solid var(--rest); }
+.c-cup.full i { background: var(--rest); }
+.c-desk { display: none; }
+@media (min-width: 960px) { .c-mob { display: none; } .c-desk { display: block; } }
+.c-meal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0 2px; border-top: 1px solid var(--line); }
+.c-meal:first-child .c-meal-head { border-top: 0; padding-top: 0; }
+.c-meal .food-row:first-of-type { border-top: 0; }
+.c-empty { padding: 4px 0 10px; }
+.c-fname { font-size: 14.5px; overflow-wrap: anywhere; }
+.c-food-actions { display: flex; }
+.c-food-actions .icon-btn { width: 40px; height: 40px; }
+.c-food-actions .icon-btn svg { width: 18px; height: 18px; }
+.c-wstep input { font-size: 34px; }
+.c-wstep button { min-height: 68px; }
+.c-wstats.stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.c-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.c-compare figure { margin: 0; }
+.c-compare img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 12px; background: var(--bg); }
+.c-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.photo-grid button { padding: 0; border: 0; background: none; display: block; width: 100%; }
+.c-inline-ico { width: 14px; height: 14px; vertical-align: -2px; }
